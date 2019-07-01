@@ -1,0 +1,103 @@
+<html>
+<head>
+  <title>FABG Form Auto-fill Bookmarklet Generator</title>
+  <script src="https://cdn.jsdelivr.net/npm/vue@2.6.10/dist/vue.js"></script>
+  <link href="https://fonts.googleapis.com/css?family=Roboto&display=swap" rel="stylesheet"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <style>
+    body {
+      text-align: center;
+      font-family: 'Roboto', sans-serif;
+      font-size: 14px;
+    }
+
+    *:focus {
+      outline: 0;
+    }
+
+    h1 {
+      border-bottom: 1px #e3e5e6 solid;
+      margin: 0;
+      padding: 20px 0;
+    }
+    input {
+      padding: 5px 10px;
+      width: 100%;
+      box-sizing: border-box;
+    }
+    .columns {
+      box-sizing: border-box;
+      clear: none;
+      float: left;
+      padding: 5px;
+      width: 50%;
+    }
+
+    button {
+      cursor: pointer;
+      margin: 5px;
+    }
+
+    #app {
+
+    }
+  </style>
+</head>
+<body>
+  <h1>FABG Form Auto-fill Bookmarklet Generator</h1>
+  <p>
+
+  </p>
+  <div id="app">
+    <div style="max-width: 600px; margin: 0 auto;">
+      <div v-for="index in howManyFields" :key="index">
+        <div class="columns">
+          <input type="text" placeholder="Field name" v-model="fieldNames[index - 1]"/>
+        </div>
+        <div class="columns">
+          <input type="text" placeholder="Value" v-model="fieldValues[index - 1]"/>
+        </div>
+      </div>
+      <div style="text-align: right; margin: 10px 0;">
+        <button type="button" @click="addField">Add field</button>
+      </div>
+      <div>
+        <button type="button" @click="generateBookmarklet">Generate Bookmarklet</button>
+      </div>
+      <div v-if="bookmarkletReady" style="margin-top: 50px;">
+        Drag this to your browser bookmarks bar:
+        <a :href="bookMarkletScript">Your bookmarklet</a>
+      </div>
+    </div>
+  </div>
+<script>
+  new Vue({
+    el: '#app',
+    data: {
+      howManyFields: 1,
+      bookmarkletReady: false,
+      fieldNames: [],
+      fieldValues: [],
+      bookMarkletScript: ''
+    },
+    methods: {
+      generateBookmarklet: function() {
+        var bmScriptGenerator = 'javascript:';
+        for (let r = 0; r < this.howManyFields; r++) {
+          bmScriptGenerator += 'document.querySelector(\'[name="' + this.fieldNames[r] + '"]\').value=\'' + this.fieldValues[r] + '\';';
+        }
+        bmScriptGenerator += 'void(0);';
+        this.bookMarkletScript = bmScriptGenerator;
+        this.bookmarkletReady = true;
+      },
+      addField: function() {
+        this.howManyFields++;
+      }
+    },
+    mounted: function() {
+
+    }
+  })
+</script>
+</body>
+</html>
