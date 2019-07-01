@@ -2,6 +2,6 @@
 
 Create an "auto fill form button" ready to drag and drop into your browser bookmarks bar. Useful for testing UI when developing or to fill repeating forms.
 
-https://patopitaluga.github.io/FABG/
+https://patopitaluga.github.io/fabg/
 
-![Example in browser](https://patopitaluga.github.io/FABG/browserexample.png)
+![Example in browser](https://patopitaluga.github.io/fabg/browserexample.png)
