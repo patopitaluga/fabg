@@ -42,6 +42,7 @@
 
     }
   </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.19.0/axios.min.js"></script>
 </head>
 <body>
   <h1>FABG Form Auto-fill Bookmarklet Generator</h1>
@@ -50,23 +51,43 @@
   </p>
   <div id="app">
     <div style="max-width: 600px; margin: 0 auto;">
-      <div v-for="index in howManyFields" :key="index">
-        <div class="columns">
-          <input type="text" placeholder="Field name" v-model="fieldNames[index - 1]"/>
+      <div style="text-align: left;padding-bottom: 10px;">
+        <button style="display: none;" @click="getFromUrl = true;" v-if="!getFromUrl" style="border: 0; margin: 0; background: transparent;text-decoration: underline;">Get fields from url</button>
+        <button @click="getFromSource = true;" v-if="!getFromUrl" style="border: 0; margin: 0; background: transparent;text-decoration: underline;">Get fields from source code</button>
+        <div style="padding: 5px;" v-if="getFromSource">
+          <input type="text" placeholder="Default string" v-model="defaultString"/>
+          <input type="text" placeholder="Default email" v-model="defaultEmail"/>
+          <textarea style="width: 100%;height: 60px;" placeholder="Paste the source code of the form." v-model="source" onchange="window.localStorage.setItem('source', this.value);"></textarea>
+          <button @click="getFieldsFromSource">Get</button>
         </div>
-        <div class="columns">
-          <input type="text" placeholder="Value" v-model="fieldValues[index - 1]"/>
+        <div style="padding: 5px;" v-if="getFromUrl">
+          <input type="text" placeholder="Url" v-model="url"/>
+          <button @click="getFields">Get</button>
+        </div>
+      </div>
+      <div v-for="index in howManyFields" :key="index" style="overflow: hidden;">
+        <div style="width: 95%;float: left;">
+          <div class="columns">
+            <input type="text" placeholder="Field name" v-model="fieldNames[index - 1]" @change="generateBookmarklet"/>
+          </div>
+          <div class="columns">
+            <input type="text" placeholder="Value" v-model="fieldValues[index - 1]" @change="generateBookmarklet"/>
+          </div>
+        </div>
+        <div style="padding: 5px;width: 5%; float: left; clear: none;box-sizing: border-box;" @click="removeField(index)">
+          <button style="width: 100%;padding: 6px 5px 5px;margin: 0;box-sizing: border-box;font-size: 12px;text-align: center;" @click.stop.prevent="removeField(index)" v-if="index < howManyFields">
+            x
+          </button>
         </div>
       </div>
       <div style="text-align: right; margin: 10px 0;">
-        <button type="button" @click="addField">Add field</button>
+        <button type="button" @click="addField" style="margin-right: 10px;">Add field</button>
       </div>
-      <div>
-        <button type="button" @click="generateBookmarklet">Generate Bookmarklet</button>
-      </div>
-      <div v-if="bookmarkletReady" style="margin-top: 50px;">
+      <div v-if="bookmarkletReady" style="margin-top: 50px;font-size: 26px;padding-bottom: 100px;">
         Drag this to your browser bookmarks bar:
-        <a :href="bookMarkletScript">Your bookmarklet</a>
+        <div>
+          <a :href="bookMarkletScript" style="padding-top: 8px;">Your bookmarklet</a>
+        </div>
       </div>
     </div>
   </div>
@@ -74,6 +95,12 @@
   new Vue({
     el: '#app',
     data: {
+      getFromUrl: false,
+      getFromSource: false,
+      url: '',
+      source: '',
+      defaultString: '',
+      defaultEmail: '',
       howManyFields: 1,
       bookmarkletReady: false,
       fieldNames: [],
@@ -84,7 +111,10 @@
       generateBookmarklet: function() {
         var bmScriptGenerator = 'javascript:';
         for (let r = 0; r < this.howManyFields; r++) {
-          bmScriptGenerator += 'document.querySelector(\'[name="' + this.fieldNames[r] + '"]\').value=\'' + this.fieldValues[r] + '\';';
+          if (typeof this.fieldNames[r] !== 'undefined') {
+            if (typeof this.fieldValues[r] === 'undefined') this.fieldValues[r] = '';
+            bmScriptGenerator += 'document.querySelector(\'[name="' + this.fieldNames[r] + '"]\').value=\'' + this.fieldValues[r] + '\';';
+          }
         }
         bmScriptGenerator += 'void(0);';
         this.bookMarkletScript = bmScriptGenerator;
@@ -92,10 +122,80 @@
       },
       addField: function() {
         this.howManyFields++;
+      },
+      removeField: function(index) {
+        this.fieldNames.splice(index - 1, 1);
+        this.fieldValues.splice(index - 1, 1);
+        this.howManyFields--;
+        this.generateBookmarklet();
+      },
+      getFields: function() {
+        axios.get(this.url)
+          .then(function (response) {
+            // handle success
+            console.log(response.data);
+          })
+          .catch(function(err) {
+            console.log(err);
+          });
+      },
+      getFieldsFromSource: function() {
+        this.fieldNames = [];
+        this.fieldValues = [];
+        var that = this;
+        var wrapper = document.createElement('div');
+        wrapper.innerHTML = this.source;
+        var countAdded = 0;
+        var inputs = wrapper.querySelectorAll('input');
+        var lastName = '';
+        [].forEach.call(inputs, function(eachInput) {
+          if (lastName != eachInput.name && eachInput.type !== 'hidden') {
+            if (countAdded > 0) that.addField();
+            countAdded++;
+            that.fieldNames.push(eachInput.name);
+            if (eachInput.type === 'radio') {
+              that.fieldValues.push(eachInput.value);
+            } else {
+              if (eachInput.type === 'number') {
+                that.fieldValues.push('1');
+              } else {
+                if (eachInput.name.indexOf('email') > -1)
+                  that.fieldValues.push(that.defaultEmail);
+                else
+                  that.fieldValues.push(that.defaultString);
+              }
+            }
+          }
+          lastName = eachInput.name;
+        });
+        var textareas = wrapper.querySelectorAll('textarea');
+        [].forEach.call(textareas, function(eachInput) {
+          if (countAdded > 0) that.addField();
+          countAdded++;
+          that.fieldNames.push(eachInput.name);
+          that.fieldValues.push('');
+        });
+        var selects = wrapper.querySelectorAll('select');
+        [].forEach.call(selects, function(eachSelect) {
+          var firstValue = '';
+          var options = eachSelect.querySelectorAll('option');
+          [].forEach.call(options, function(eachOption) {
+            if (firstValue === '') firstValue = eachOption.value;
+          });
+
+          if (countAdded > 0) that.addField();
+          countAdded++;
+          that.fieldNames.push(eachSelect.name);
+          that.fieldValues.push(firstValue);
+        });
+        this.generateBookmarklet();
       }
     },
     mounted: function() {
-
+      this.$nextTick(function() {
+        if (window.localStorage.getItem('source'))
+          this.source = window.localStorage.getItem('source');
+      });
     }
   })
 </script>
