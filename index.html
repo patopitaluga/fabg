@@ -85,8 +85,11 @@
       </div>
       <div v-if="bookmarkletReady" style="margin-top: 50px;font-size: 26px;padding-bottom: 100px;">
         Drag this to your browser bookmarks bar:
-        <div>
-          <a :href="bookMarkletScript" style="padding-top: 8px;">Your bookmarklet</a>
+        <div style="padding: 10px 0;">
+          <a :href="bookMarkletScript" style="padding-top: 8px;">{{ bookMarkletName }}</a>
+        </div>
+        <div style="padding: 5px">
+          <input type="text" v-model="bookMarkletName"/>
         </div>
       </div>
     </div>
@@ -105,7 +108,8 @@
       bookmarkletReady: false,
       fieldNames: [],
       fieldValues: [],
-      bookMarkletScript: ''
+      bookMarkletScript: '',
+      bookMarkletName: 'Your bookmarklet'
     },
     methods: {
       generateBookmarklet: function() {
@@ -113,7 +117,7 @@
         for (let r = 0; r < this.howManyFields; r++) {
           if (typeof this.fieldNames[r] !== 'undefined') {
             if (typeof this.fieldValues[r] === 'undefined') this.fieldValues[r] = '';
-            bmScriptGenerator += 'document.querySelector(\'[name="' + this.fieldNames[r] + '"]\').value=\'' + this.fieldValues[r] + '\';';
+            bmScriptGenerator += 'if (document.querySelector(\'[name="' + this.fieldNames[r] + '"]\')) document.querySelector(\'[name="' + this.fieldNames[r] + '"]\').value=\'' + this.fieldValues[r] + '\';';
           }
         }
         bmScriptGenerator += 'void(0);';
@@ -140,6 +144,7 @@
           });
       },
       getFieldsFromSource: function() {
+        this.howManyFields = 1;
         this.fieldNames = [];
         this.fieldValues = [];
         var that = this;
